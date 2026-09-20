@@ -12,6 +12,10 @@ Configuration:
 Routes:
     - GET  / - Root endpoint
     - GET  /health - Health check
+    - POST /auth/register - Register user
+    - POST /auth/login - Login user
+    - POST /auth/refresh - Refresh token
+    - POST /auth/logout - Logout user
     - POST /api/claims - Submit claim
     - GET  /api/claims - List claims
     - GET  /api/claims/{id} - Get claim details
@@ -41,6 +45,8 @@ from database import Base, engine, get_db
 
 # Routes imports
 from routes.claims import router as claims_router
+from routes.scoring import router as scoring_router
+from routes.auth import router as auth_router
 
 
 # ============================================================================
@@ -150,6 +156,7 @@ async def startup_event():
         logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
         logger.info(f"API Version: 1.0.0")
         logger.info(f"Documentation: http://localhost:8000/docs")
+        logger.info(f"Authentication: JWT tokens enabled")
         
         logger.info("Application startup completed successfully")
     except Exception as e:
@@ -206,6 +213,7 @@ async def root():
             "openapi": "http://localhost:8000/openapi.json"
         },
         "endpoints": {
+            "authentication": "/auth",
             "claims": "/api/claims",
             "sources": "/api/sources",
             "health": "/health"
@@ -315,13 +323,24 @@ async def general_exception_handler(request, exc):
 # ROUTE REGISTRATION
 # ============================================================================
 
+# Include authentication routes
+app.include_router(
+    auth_router,
+    prefix="/auth",
+    tags=["authentication"]
+)
+
 # Include claims and sources routes
 app.include_router(
     claims_router,
     prefix="/api",
     tags=["claims", "sources"]
 )
-
+# Include scoring routes
+app.include_router(
+    scoring_router,
+    tags=["scoring"]
+)
 
 # ============================================================================
 # APPLICATION FACTORY
